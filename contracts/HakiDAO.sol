@@ -3,6 +3,9 @@
 pragma solidity 0.8.18;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP.
+ */
 interface IERC20 {
     /**
      * @dev Returns the amount of tokens in existence.
@@ -15,13 +18,13 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 
     /**
-     * @dev Moves `amount` tokens from the caller's account to `to`.
+     * @dev Moves `amount` tokens from the caller's account to `recipient`.
      *
      * Returns a boolean value indicating whether the operation succeeded.
      *
      * Emits a {Transfer} event.
      */
-    function transfer(address to, uint256 amount) external returns (bool);
+    function transfer(address recipient, uint256 amount) external returns (bool);
 
     /**
      * @dev Returns the remaining number of tokens that `spender` will be
@@ -49,7 +52,7 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 
     /**
-     * @dev Moves `amount` tokens from `from` to `to` using the
+     * @dev Moves `amount` tokens from `sender` to `recipient` using the
      * allowance mechanism. `amount` is then deducted from the caller's
      * allowance.
      *
@@ -58,8 +61,8 @@ interface IERC20 {
      * Emits a {Transfer} event.
      */
     function transferFrom(
-        address from,
-        address to,
+        address sender,
+        address recipient,
         uint256 amount
     ) external returns (bool);
 
@@ -76,6 +79,411 @@ interface IERC20 {
      * a call to {approve}. `value` is the new allowance.
      */
     event Approval(address indexed owner, address indexed spender, uint256 value);
+}
+
+// File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
+
+
+
+
+/**
+ * @dev Interface for the optional metadata functions from the ERC20 standard.
+ *
+ * _Available since v4.1._
+ */
+interface IERC20Metadata is IERC20 {
+    /**
+     * @dev Returns the name of the token.
+     */
+    function name() external view returns (string memory);
+
+    /**
+     * @dev Returns the symbol of the token.
+     */
+    function symbol() external view returns (string memory);
+
+    /**
+     * @dev Returns the decimals places of the token.
+     */
+    function decimals() external view returns (uint8);
+}
+
+// File: @openzeppelin/contracts/utils/Context.sol
+
+
+
+/**
+ * @dev Provides information about the current execution context, including the
+ * sender of the transaction and its data. While these are generally available
+ * via msg.sender and msg.data, they should not be accessed in such a direct
+ * manner, since when dealing with meta-transactions the account sending and
+ * paying for execution may not be the actual sender (as far as an application
+ * is concerned).
+ *
+ * This contract is only required for intermediate, library-like contracts.
+ */
+abstract contract Context {
+    function _msgSender() internal view virtual returns (address) {
+        return msg.sender;
+    }
+
+    function _msgData() internal view virtual returns (bytes calldata) {
+        return msg.data;
+    }
+}
+
+// File: @openzeppelin/contracts/token/ERC20/ERC20.sol
+
+
+
+
+
+/**
+ * @dev Implementation of the {IERC20} interface.
+ *
+ * This implementation is agnostic to the way tokens are created. This means
+ * that a supply mechanism has to be added in a derived contract using {_mint}.
+ * For a generic mechanism see {ERC20PresetMinterPauser}.
+ *
+ * TIP: For a detailed writeup see our guide
+ * https://forum.zeppelin.solutions/t/how-to-implement-erc20-supply-mechanisms/226[How
+ * to implement supply mechanisms].
+ *
+ * We have followed general OpenZeppelin Contracts guidelines: functions revert
+ * instead returning `false` on failure. This behavior is nonetheless
+ * conventional and does not conflict with the expectations of ERC20
+ * applications.
+ *
+ * Additionally, an {Approval} event is emitted on calls to {transferFrom}.
+ * This allows applications to reconstruct the allowance for all accounts just
+ * by listening to said events. Other implementations of the EIP may not emit
+ * these events, as it isn't required by the specification.
+ *
+ * Finally, the non-standard {decreaseAllowance} and {increaseAllowance}
+ * functions have been added to mitigate the well-known issues around setting
+ * allowances. See {IERC20-approve}.
+ */
+contract ERC20 is Context, IERC20, IERC20Metadata {
+    mapping(address => uint256) private _balances;
+
+    mapping(address => mapping(address => uint256)) private _allowances;
+
+    uint256 private _totalSupply;
+
+    string private _name;
+    string private _symbol;
+
+    /**
+     * @dev Sets the values for {name} and {symbol}.
+     *
+     * The default value of {decimals} is 18. To select a different value for
+     * {decimals} you should overload it.
+     *
+     * All two of these values are immutable: they can only be set once during
+     * construction.
+     */
+    constructor(string memory name_, string memory symbol_) {
+        _name = name_;
+        _symbol = symbol_;
+    }
+
+    /**
+     * @dev Returns the name of the token.
+     */
+    function name() public view virtual override returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev Returns the symbol of the token, usually a shorter version of the
+     * name.
+     */
+    function symbol() public view virtual override returns (string memory) {
+        return _symbol;
+    }
+
+    /**
+     * @dev Returns the number of decimals used to get its user representation.
+     * For example, if `decimals` equals `2`, a balance of `505` tokens should
+     * be displayed to a user as `5.05` (`505 / 10 ** 2`).
+     *
+     * Tokens usually opt for a value of 18, imitating the relationship between
+     * Ether and Wei. This is the value {ERC20} uses, unless this function is
+     * overridden;
+     *
+     * NOTE: This information is only used for _display_ purposes: it in
+     * no way affects any of the arithmetic of the contract, including
+     * {IERC20-balanceOf} and {IERC20-transfer}.
+     */
+    function decimals() public view virtual override returns (uint8) {
+        return 18;
+    }
+
+    /**
+     * @dev See {IERC20-totalSupply}.
+     */
+    function totalSupply() public view virtual override returns (uint256) {
+        return _totalSupply;
+    }
+
+    /**
+     * @dev See {IERC20-balanceOf}.
+     */
+    function balanceOf(address account) public view virtual override returns (uint256) {
+        return _balances[account];
+    }
+
+    /**
+     * @dev See {IERC20-transfer}.
+     *
+     * Requirements:
+     *
+     * - `recipient` cannot be the zero address.
+     * - the caller must have a balance of at least `amount`.
+     */
+    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+        _transfer(_msgSender(), recipient, amount);
+        return true;
+    }
+
+    /**
+     * @dev See {IERC20-allowance}.
+     */
+    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+        return _allowances[owner][spender];
+    }
+
+    /**
+     * @dev See {IERC20-approve}.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     */
+    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+        _approve(_msgSender(), spender, amount);
+        return true;
+    }
+
+    /**
+     * @dev See {IERC20-transferFrom}.
+     *
+     * Emits an {Approval} event indicating the updated allowance. This is not
+     * required by the EIP. See the note at the beginning of {ERC20}.
+     *
+     * Requirements:
+     *
+     * - `sender` and `recipient` cannot be the zero address.
+     * - `sender` must have a balance of at least `amount`.
+     * - the caller must have allowance for ``sender``'s tokens of at least
+     * `amount`.
+     */
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public virtual override returns (bool) {
+        _transfer(sender, recipient, amount);
+
+        uint256 currentAllowance = _allowances[sender][_msgSender()];
+        require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
+        unchecked {
+            _approve(sender, _msgSender(), currentAllowance - amount);
+        }
+
+        return true;
+    }
+
+    /**
+     * @dev Atomically increases the allowance granted to `spender` by the caller.
+     *
+     * This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {IERC20-approve}.
+     *
+     * Emits an {Approval} event indicating the updated allowance.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     */
+    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
+        return true;
+    }
+
+    /**
+     * @dev Atomically decreases the allowance granted to `spender` by the caller.
+     *
+     * This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {IERC20-approve}.
+     *
+     * Emits an {Approval} event indicating the updated allowance.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     * - `spender` must have allowance for the caller of at least
+     * `subtractedValue`.
+     */
+    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+        uint256 currentAllowance = _allowances[_msgSender()][spender];
+        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        unchecked {
+            _approve(_msgSender(), spender, currentAllowance - subtractedValue);
+        }
+
+        return true;
+    }
+
+    /**
+     * @dev Moves `amount` of tokens from `sender` to `recipient`.
+     *
+     * This internal function is equivalent to {transfer}, and can be used to
+     * e.g. implement automatic token fees, slashing mechanisms, etc.
+     *
+     * Emits a {Transfer} event.
+     *
+     * Requirements:
+     *
+     * - `sender` cannot be the zero address.
+     * - `recipient` cannot be the zero address.
+     * - `sender` must have a balance of at least `amount`.
+     */
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal virtual {
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+
+        _beforeTokenTransfer(sender, recipient, amount);
+
+        uint256 senderBalance = _balances[sender];
+        require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
+        unchecked {
+            _balances[sender] = senderBalance - amount;
+        }
+        _balances[recipient] += amount;
+
+        emit Transfer(sender, recipient, amount);
+
+        _afterTokenTransfer(sender, recipient, amount);
+    }
+
+    /** @dev Creates `amount` tokens and assigns them to `account`, increasing
+     * the total supply.
+     *
+     * Emits a {Transfer} event with `from` set to the zero address.
+     *
+     * Requirements:
+     *
+     * - `account` cannot be the zero address.
+     */
+    function _mint(address account, uint256 amount) internal virtual {
+        require(account != address(0), "ERC20: mint to the zero address");
+
+        _beforeTokenTransfer(address(0), account, amount);
+
+        _totalSupply += amount;
+        _balances[account] += amount;
+        emit Transfer(address(0), account, amount);
+
+        _afterTokenTransfer(address(0), account, amount);
+    }
+
+    /**
+     * @dev Destroys `amount` tokens from `account`, reducing the
+     * total supply.
+     *
+     * Emits a {Transfer} event with `to` set to the zero address.
+     *
+     * Requirements:
+     *
+     * - `account` cannot be the zero address.
+     * - `account` must have at least `amount` tokens.
+     */
+    function _burn(address account, uint256 amount) internal virtual {
+        require(account != address(0), "ERC20: burn from the zero address");
+
+        _beforeTokenTransfer(account, address(0), amount);
+
+        uint256 accountBalance = _balances[account];
+        require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
+        unchecked {
+            _balances[account] = accountBalance - amount;
+        }
+        _totalSupply -= amount;
+
+        emit Transfer(account, address(0), amount);
+
+        _afterTokenTransfer(account, address(0), amount);
+    }
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
+     *
+     * This internal function is equivalent to `approve`, and can be used to
+     * e.g. set automatic allowances for certain subsystems, etc.
+     *
+     * Emits an {Approval} event.
+     *
+     * Requirements:
+     *
+     * - `owner` cannot be the zero address.
+     * - `spender` cannot be the zero address.
+     */
+    function _approve(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
+
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    /**
+     * @dev Hook that is called before any transfer of tokens. This includes
+     * minting and burning.
+     *
+     * Calling conditions:
+     *
+     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
+     * will be transferred to `to`.
+     * - when `from` is zero, `amount` tokens will be minted for `to`.
+     * - when `to` is zero, `amount` of ``from``'s tokens will be burned.
+     * - `from` and `to` are never both zero.
+     *
+     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
+     */
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {}
+
+    /**
+     * @dev Hook that is called after any transfer of tokens. This includes
+     * minting and burning.
+     *
+     * Calling conditions:
+     *
+     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
+     * has been transferred to `to`.
+     * - when `from` is zero, `amount` tokens have been minted for `to`.
+     * - when `to` is zero, `amount` of ``from``'s tokens have been burned.
+     * - `from` and `to` are never both zero.
+     *
+     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
+     */
+    function _afterTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {}
 }
 
 library Address {
@@ -376,21 +784,22 @@ library SafeERC20 {
     }
 }
 
-contract HakiDAO is ReentrancyGuard{
+contract HAKIDAO is ReentrancyGuard{
 
     /** HAKI token interface and Safety Wrapper **/
     using SafeERC20 for IERC20;
-    IERC20 public HAKI;
-    IERC20 public LUFFY;
-    address public Reserve;
-    address public Governance;
+    IERC20 public HAKI = IERC20(0x7cf7FC9210c3a89e6b165ff58441a8A2a10E5e8D);
+    IERC20 public LUFFY = IERC20(0xcf13023e01d791a9DB1Fd50a01b77fA5954dE772);
+    address public Reserve = 0xBEd2242B8f47D965fD5b739004FEfE5d18F3A073;
+    address public Governance = 0x9cdF5cba9D49289b78Cce868697a5bac558d4072;
     uint public ProposalFee = 1e17;
     uint public VoteFee = 1e17;
-    uint public RewardScale = 10;
+    uint public RewardScale = 10; 
     uint public WinningProposal;
     uint public WinningProposalRewards;
     uint public RunnerUpRewards;
     uint public StartTime;
+    uint public VotingPeriod = 0; //In days
     uint[] public ids;
     uint[] public QualifiedProposals;
     
@@ -406,23 +815,18 @@ contract HakiDAO is ReentrancyGuard{
         uint weight;
     }
 
+    mapping(uint => string) public cids;
     mapping(uint => address) public proposer;
     mapping(uint => uint) public votes;
     mapping(uint => mapping(address => VoteDetails)) public voters;
 
-    constructor(address _hakiToken, address _luffyToken, address _governance, address _reserve){
-        HAKI = IERC20(_hakiToken);
-        LUFFY = IERC20(_luffyToken);
-        Governance = _Governance;
-        Reserve = _Reserve;
-    }
-
-    function submitProposal() external nonReentrant returns (uint uniqueId){
-        require(ProposalState = true);
+    function submitProposal(string memory _cid) external nonReentrant returns (uint uniqueId){
+        require(ProposalState == true);
         HAKI.safeTransferFrom(msg.sender, Reserve, ProposalFee);
         uniqueId = ids.length + 1;
         ids.push(uniqueId);
         proposer[uniqueId] = msg.sender;
+        cids[uniqueId] = _cid;
         if(uniqueId == 1){
             StartTime = block.timestamp;
         }
@@ -434,20 +838,22 @@ contract HakiDAO is ReentrancyGuard{
         return uniqueId;
     }
 
-    function vote(uint _proposalId) external payable nonReentrant returns (VoteDetails memory){
+    function vote(uint _proposalId) external payable nonReentrant returns (uint, VoteDetails memory){
         require(_proposalId != 0, "Invalid Proposal ID");
-        require(VotingState = true);
+        require(_proposalId <= ids.length, "Proposal ID does not exist");
+        require(VotingState == true);
         HAKI.safeTransferFrom(msg.sender, Reserve, VoteFee);
-        TotalHoldings += HAKI.balanceOf(msg.sender);
         
         if(msg.value == 0){
             votes[_proposalId] += 1;
             TotalVotes += 1;
             if(LUFFY.balanceOf(msg.sender) > 0){
-                voters[_proposalId][msg.sender] = VoteDetails(HAKI.balanceOf(msg.sender), 0, 2);
+                voters[_proposalId][msg.sender] = VoteDetails(HAKI.balanceOf(msg.sender) + 60, 0, 2);
+                TotalHoldings += HAKI.balanceOf(msg.sender) + 60;
             }
             else {
-                voters[_proposalId][msg.sender] = VoteDetails(HAKI.balanceOf(msg.sender), 0, 1);
+                voters[_proposalId][msg.sender] = VoteDetails(HAKI.balanceOf(msg.sender) + 45, 0, 1);
+                TotalHoldings += HAKI.balanceOf(msg.sender) + 45;
             }
         }
         
@@ -466,18 +872,20 @@ contract HakiDAO is ReentrancyGuard{
                 TotalVotes += 14;
             }
             if(LUFFY.balanceOf(msg.sender) > 0){
-                voters[_proposalId][msg.sender] = VoteDetails(HAKI.balanceOf(msg.sender), msg.value, 4);
+                voters[_proposalId][msg.sender] = VoteDetails(HAKI.balanceOf(msg.sender) + 90, msg.value, 4);
+                TotalHoldings += HAKI.balanceOf(msg.sender) + 90;
             }
             else{
-                voters[_proposalId][msg.sender] = VoteDetails(HAKI.balanceOf(msg.sender), msg.value, 3);
+                voters[_proposalId][msg.sender] = VoteDetails(HAKI.balanceOf(msg.sender) + 75, msg.value, 3);
+                TotalHoldings += HAKI.balanceOf(msg.sender) + 75;
             }
         }
-        if(block.timestamp - StartTime >= 30 * 1 days){
+        if(block.timestamp - StartTime >= VotingPeriod * 1 days){
             VotingState = false;
             ProposalState = true;
             uint proposalCount = 0;
             uint wp = 0;
-            for (uint i = 0; i < ids.length; i++){
+            for (uint i = 1; i < ids.length; i++){ //i = 1 because 0 is never used in the votes mapping
                 if(votes[i] > proposalCount){
                     proposalCount = votes[i];
                     wp = i;
@@ -485,8 +893,8 @@ contract HakiDAO is ReentrancyGuard{
             }
             uint rewards = HAKI.balanceOf(Reserve) / RewardScale;
             WinningProposalRewards = rewards - (rewards / 4);
-            for (uint q = 0; q < ids.length; q++){
-                if(votes[q] != wp){
+            for (uint q = 1; q < ids.length; q++){
+                if(q != wp){ //
                     if (votes[q] >= (votes[wp] / 10)){
                         QualifiedProposals.push(q);
                     }
@@ -496,48 +904,31 @@ contract HakiDAO is ReentrancyGuard{
             RunnerUpRewards = rewards - WinningProposalRewards;
 
         }
-        return voters[_proposalId][msg.sender];
+        return (_proposalId, voters[_proposalId][msg.sender]);
     }
 
-    function AdjustRewards(uint _newScale) external nonReentrant onlyGovernance{
+    function AdjustRewards(uint _newScale) external onlyGovernance{
         require(_newScale >= 4);
         RewardScale = _newScale;
+    }
+
+    function AdjustVotingPeriod(uint _newPeriod) external onlyGovernance{
+        require(ProposalState == true, "Current voting cycle not finished");
+        require(_newPeriod > 0);
+        VotingPeriod = _newPeriod;
     }
 
     function claimRewards(uint _proposalId, uint _qualifiersId) external nonReentrant {
         uint rewards;
         if (_proposalId == WinningProposal){
             VoteDetails memory v = voters[_proposalId][msg.sender];
-            if (v.weight == 1){
-                rewards = v.holdings * (WinningProposalRewards / 4) / TotalHoldings;
-            }
-            else if(v.weight == 2){
-                rewards = v.holdings * (WinningProposalRewards / 4) / TotalHoldings;
-            }
-            else if(v.weight == 3){
-                rewards = v.holdings * (WinningProposalRewards / 4) / TotalHoldings;
-            }
-            else{
-                rewards = v.holdings * (WinningProposalRewards / 4) / TotalHoldings;
-            }
+            rewards = v.holdings * WinningProposalRewards / TotalHoldings;
         }
         else{
-            _proposalId = QualifiedProposals[_qualifiersId];
-            VoteDetails memory v = voters[_proposalId][msg.sender];
+            require(_proposalId == QualifiedProposals[_qualifiersId], "Not qualified"); //
+            VoteDetails memory v = voters[_proposalId][msg.sender]; //
             uint singleProposalReward = RunnerUpRewards / QualifiedProposals.length;
-            if (v.weight == 1){
-                rewards = v.holdings * (singleProposalReward / 4) / TotalHoldings;
-            }
-            else if(v.weight == 2){
-                rewards = v.holdings * (singleProposalReward / 4) / TotalHoldings;
-            }
-            else if(v.weight == 3){
-                rewards = v.holdings * (singleProposalReward / 4) / TotalHoldings;
-            }
-            else{
-                rewards = v.holdings * (singleProposalReward / 4) / TotalHoldings;
-            }
-
+            rewards = v.holdings * singleProposalReward / TotalHoldings;
         }
         delete voters[_proposalId][msg.sender];
         if (rewards > 0){
