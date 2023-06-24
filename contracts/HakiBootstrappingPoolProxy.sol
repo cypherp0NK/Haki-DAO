@@ -832,8 +832,8 @@ contract HakiBootstrappingPoolProxy is Ownable {
     mapping(address => uint256) private _feeRecipientsBPS;
     EnumerableSet.AddressSet private _recipientAddresses;
 
-    address public constant HakiReserve = address(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
-    address public constant VAULT = address(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
+    address public immutable HakiReserve;
+    address public immutable VAULT;
     uint256 private constant _TEN_THOUSAND_BPS = 10_000;
     address public immutable LBPFactoryAddress;
     uint256 public immutable platformAccessFeeBPS;
@@ -841,8 +841,12 @@ contract HakiBootstrappingPoolProxy is Ownable {
 
     constructor(
         uint256 _platformAccessFeeBPS,
+        address _HakiReserve,
+        address _Vault,
         address _LBPFactoryAddress
     ) {
+        HakiReserve = _HakiReserve;
+        VAULT = _Vault;
         platformAccessFeeBPS = _platformAccessFeeBPS;
         LBPFactoryAddress = _LBPFactoryAddress;
         // set initial fee recipient to owner of contract
